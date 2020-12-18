@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      0.9
+// @version      1.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @include      /^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/(show\/|search\?.*kiccer=true)$/
@@ -169,10 +169,31 @@
     Vue.component('wiki-list', {
         name: 'wiki-list',
 
-        template: `<div v-html="html" />`,
+        template: `<div class="wiki-list-wrapper" v-html="parseHtml" />`,
 
         props: {
-            html: String
+            html: String,
+            loading: Boolean,
+            projectInfo: {
+                type: Object,
+                default: () => ({})
+            }
+        },
+
+        computed: {
+            parseHtml () {
+                const logo = this.projectInfo.logo_src
+                    ? `<img class="project-logo" src="${this.projectInfo.logo_src}" />`
+                    : `<i class="project-logo project-logo-${this.projectInfo.logoId}">${this.projectInfo.project_name[0]}</i>`
+
+                return `
+                    <div class="current-project">
+                        ${logo}
+                        <span class="project-name">${this.projectInfo.project_name}</span>
+                    </div>
+                    ${this.html || `<div>${this.loading ? '正在搜索中...' : '啥也没找到...'}</div>`}
+                `
+            }
         }
     })
 
@@ -222,6 +243,12 @@
                             :enter="onSearchInputEnter"
                         />
 
+                        <el-alert
+                            type="warning"
+                            title="目前仅查询每个项目中wiki的第一页内容~"
+                            style="margin-bottom: 20px;"
+                        />
+
                         <iframe
                             class="hide-iframe"
                             v-for="(n, i) in projects"
@@ -234,6 +261,8 @@
                             v-for="(n, i) in wikiHTMLList"
                             :key="i"
                             :html="n"
+                            :project-info="projects[i]"
+                            :loading="!loaded[i]"
                         />
                     </div>
                 `,
@@ -308,6 +337,25 @@
     // 搜索页样式
     if (IN_SEARCH_PAGE) {
         GM_addStyle(`
+            .wiki-list-wrapper {
+                padding: 20px;
+                margin-bottom: 20px;
+                border-radius: 4px;
+                // box-shadow: 0 0 10px rgba(128,145,165,0.2);
+                border: 1px solid #dcdfe6;
+            }
+
+            .wiki-list .current-project {
+                width: 100%;
+                margin: -20px -20px 10px -20px;
+                padding: 10px 20px 10px 20px;
+                background-color: #f5f7fa;
+            }
+
+            .wiki-list .current-project .project-name {
+                font-weight: bold;
+            }
+
             .wiki-list .el-input {
                 margin-bottom: 20px;
             }
