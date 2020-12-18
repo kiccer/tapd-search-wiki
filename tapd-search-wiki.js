@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      0.5
+// @version      0.6
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @include      /^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/(show\/|search\?.*kiccer=true)$/
@@ -237,12 +237,6 @@
                         ids: [],
                         wd: '',
                         wikiList: []
-                    }
-                },
-
-                computed: {
-                    wikiListHtml () {
-                        return this.wikiList.join('')
                     }
                 },
 
