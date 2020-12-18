@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      0.6
+// @version      0.7
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @include      /^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/(show\/|search\?.*kiccer=true)$/
@@ -10,7 +10,7 @@
 // @grant        none
 // ==/UserScript==
 
-/* global Vue axios */
+/* global Vue axios takePartInWorkspaces */
 // https://www.tampermonkey.net/documentation.php
 // https://element.eleme.cn/#/zh-CN/component/button
 
@@ -118,46 +118,37 @@
         name: 'search-input',
 
         template: `
-            <el-input
-                placeholder="在你所有项目的wiki中搜索..."
-                size="medium"
-                v-model="_value"
-            >
-                <el-button
-                    slot="append"
-                    icon="el-icon-search"
-                    @click="search"
-                />
-            </el-input>
+            <div>
+                <el-input
+                    placeholder="在你所有项目的wiki中搜索..."
+                    size="medium"
+                    v-model="keyword"
+                    @keydown.enter.native="search"
+                >
+                    <el-button
+                        slot="append"
+                        icon="el-icon-search"
+                        @click="search"
+                    />
+                </el-input>
+            </div>
         `,
 
-        props: {
-            value: {
-                type: String,
-                default: ''
-            }
-        },
-
-        computed: {
-            _value: {
-                get () {
-                    return this.value
-                },
-                set (val) {
-                    this.$emit('input', val)
-                }
+        data () {
+            return {
+                keyword: ''
             }
         },
 
         created () {
             if (IN_SEARCH_PAGE) {
-                this._value = decodeURIComponent(URL_QUERY.search) || ''
+                this.keyword = decodeURIComponent(URL_QUERY.search) || ''
             }
         },
 
         methods: {
             search () {
-                location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this._value)}&kiccer=true`
+                location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword)}&kiccer=true`
             }
         }
     })
@@ -214,18 +205,18 @@
 
                 template: `
                     <div class="wiki-list">
-                        <search-input v-model="wd" />
+                        <search-input />
 
                         <iframe
                             class="hide-iframe"
-                            v-for="(n, i) in ids"
-                            :key="n"
-                            :src="'https://www.tapd.cn/' + n + '/markdown_wikis/search?search=' + wd"
+                            v-for="(n, i) in projects"
+                            :key="n.id"
+                            :src="'https://www.tapd.cn/' + n.id + '/markdown_wikis/search?search=' + wd"
                             @load="e => iframeLoaded(e, i)"
                         />
 
                         <wiki-list
-                            v-for="(n, i) in wikiList"
+                            v-for="(n, i) in wikiHTMLList"
                             :key="i"
                             :html="n"
                         />
@@ -234,9 +225,16 @@
 
                 data () {
                     return {
-                        ids: [],
+                        // ids: [],
+                        projects: [],
                         wd: '',
-                        wikiList: []
+                        wikiHTMLList: []
+                    }
+                },
+
+                created () {
+                    if (IN_SEARCH_PAGE) {
+                        this.wd = decodeURIComponent(URL_QUERY.search) || ''
                     }
                 },
 
@@ -245,16 +243,19 @@
                     axios({
                         url: 'https://www.tapd.cn/company/my_take_part_in_projects_list?project_id=' + CURR_PROJECT_ID
                     }).then(res => {
+                        // console.log(res, takePartInWorkspaces)
                         // console.log(res.data)
-                        this.ids = res.data.match(/(?<=object-id=")\d+(?="><\/i>)/g)
-                        this.wikiList = Array(this.ids.length).fill().map(_ => '')
+                        // this.ids = res.data.match(/(?<=object-id=")\d+(?="><\/i>)/g)
+                        this.projects = takePartInWorkspaces
+                        this.wikiHTMLList = Array(this.projects.length).fill().map(_ => '')
                     })
                 },
 
                 methods: {
                     iframeLoaded (e, i) {
+                        // console.log(e.path[0].contentWindow.takePartInWorkspaces) // takePartInWorkspaces
                         const list = e.path[0].contentDocument.body.querySelector('.wiki-list')
-                        this.$set(this.wikiList, i, list ? list.innerHTML : '')
+                        this.$set(this.wikiHTMLList, i, list ? list.innerHTML : '')
                     }
                 }
             })
