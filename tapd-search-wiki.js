@@ -1,12 +1,15 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      1.0.1
+// @version      1.0.2
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
-// @include      /^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/(show\/|search\?.*kiccer=true)$/
+// @iconURL      https://www.google.com/s2/favicons?domain=www.tapd.cn
+// @include      /^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/(show\/|search\?.*)$/
 // @require      https://cdn.bootcdn.net/ajax/libs/vue/2.6.9/vue.js
 // @require      https://cdn.bootcdn.net/ajax/libs/axios/0.21.0/axios.js
+// @noframes     这个千万别删掉！会出现死循环的！
+// @nocompat     Chrome
 // @grant        none
 // ==/UserScript==
 
@@ -159,7 +162,7 @@
                 if (this.enter) {
                     this.enter(this.keyword)
                 } else {
-                    location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword)}&kiccer=true`
+                    location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword)}`
                 }
             }
         }
@@ -220,7 +223,7 @@
         })
 
         // 如果是 search 页面则添加搜索结果列表容器
-        if (IN_SEARCH_PAGE && URL_QUERY.kiccer) {
+        if (IN_SEARCH_PAGE) {
             const searchResultContainer = document.querySelector('.search-result')
             const resultDom = document.createElement('div')
             searchResultContainer.appendChild(resultDom)
