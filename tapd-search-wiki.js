@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      1.0
+// @version      1.0.1
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @include      /^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/(show\/|search\?.*kiccer=true)$/
@@ -296,7 +296,7 @@
                     }).then(res => {
                         // console.log(res.data)
                         // this.ids = res.data.match(/(?<=object-id=")\d+(?="><\/i>)/g)
-                        this.projects = takePartInWorkspaces
+                        this.projects = takePartInWorkspaces.map(n => ({ ...n, switches: JSON.parse(n.switches) }))
                         this.wikiHTMLList = Array(this.projects.length).fill().map(_ => '')
                         this.loaded = Array(this.projects.length).fill().map(_ => false)
                     })
