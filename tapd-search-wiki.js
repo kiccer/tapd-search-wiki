@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      0.7
+// @version      0.8
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @include      /^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/(show\/|search\?.*kiccer=true)$/
@@ -128,11 +128,17 @@
                     <el-button
                         slot="append"
                         icon="el-icon-search"
+                        :loading="loading"
                         @click="search"
                     />
                 </el-input>
             </div>
         `,
+
+        props: {
+            enter: Function,
+            loading: Boolean
+        },
 
         data () {
             return {
@@ -148,7 +154,13 @@
 
         methods: {
             search () {
-                location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword)}&kiccer=true`
+                if (this.loading) return
+                // 如果绑定了 enter 方法，那就支持无刷新更新数据
+                if (this.enter) {
+                    this.enter(this.keyword)
+                } else {
+                    location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword)}&kiccer=true`
+                }
             }
         }
     })
@@ -205,7 +217,10 @@
 
                 template: `
                     <div class="wiki-list">
-                        <search-input />
+                        <search-input
+                            :loading="!allLoaded"
+                            :enter="onSearchInputEnter"
+                        />
 
                         <iframe
                             class="hide-iframe"
@@ -228,7 +243,8 @@
                         // ids: [],
                         projects: [],
                         wd: '',
-                        wikiHTMLList: []
+                        wikiHTMLList: [],
+                        loaded: []
                     }
                 },
 
@@ -238,24 +254,35 @@
                     }
                 },
 
+                computed: {
+                    allLoaded () {
+                        return !(this.loaded || []).includes(false)
+                    }
+                },
+
                 mounted () {
                     // 获取所有项目 id
                     axios({
                         url: 'https://www.tapd.cn/company/my_take_part_in_projects_list?project_id=' + CURR_PROJECT_ID
                     }).then(res => {
-                        // console.log(res, takePartInWorkspaces)
                         // console.log(res.data)
                         // this.ids = res.data.match(/(?<=object-id=")\d+(?="><\/i>)/g)
                         this.projects = takePartInWorkspaces
                         this.wikiHTMLList = Array(this.projects.length).fill().map(_ => '')
+                        this.loaded = Array(this.projects.length).fill().map(_ => false)
                     })
                 },
 
                 methods: {
                     iframeLoaded (e, i) {
-                        // console.log(e.path[0].contentWindow.takePartInWorkspaces) // takePartInWorkspaces
                         const list = e.path[0].contentDocument.body.querySelector('.wiki-list')
                         this.$set(this.wikiHTMLList, i, list ? list.innerHTML : '')
+                        this.$set(this.loaded, i, true)
+                    },
+
+                    onSearchInputEnter (val) {
+                        this.wd = val
+                        this.loaded = Array(this.projects.length).fill().map(_ => false)
                     }
                 }
             })
