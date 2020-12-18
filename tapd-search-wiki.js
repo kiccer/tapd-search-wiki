@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
-// @namespace    http://tampermonkey.net/
-// @version      0.1
+// @namespace    https://github.com/kiccer/tapd-search-wiki
+// @version      0.2
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @include      /^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/(show\/|search\?.*)$/
 // @require      https://cdn.bootcdn.net/ajax/libs/vue/2.6.9/vue.js
 // @require      https://cdn.bootcdn.net/ajax/libs/axios/0.21.0/axios.js
-// @updateURL    none
+// @updateURL    https://raw.githubusercontent.com/kiccer/tapd-search-wiki/main/tapd-search-wiki.js
 // ==/UserScript==
 
 /* global Vue axios */
