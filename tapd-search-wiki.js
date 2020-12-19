@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      1.0.3
+// @version      1.0.4
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -30,6 +30,8 @@
     const CURR_PROJECT_ID = location.href.match(/(?<=https:\/\/www.tapd.cn\/)\d+(?=\/markdown_wikis\/)/g)[0] || ''
     // 随机字符串
     const GM_ADD_STYLE_HASH = `GM_addStyle_${parseInt(Math.random() * Date.now())}`
+    // 从 session 中获取缓存的搜索词
+    const SEARCH_WORD = sessionStorage.getItem('tapd-search-wiki/search_word') || ''
     // 页面 query 参数
     const URL_QUERY = (() => {
         const queryStr = location.href.split('?')[1]
@@ -153,7 +155,7 @@
 
         created () {
             if (IN_SEARCH_PAGE) {
-                this.keyword = decodeURIComponent(URL_QUERY.search) || ''
+                this.keyword = SEARCH_WORD || decodeURIComponent(URL_QUERY.search) || ''
             }
         },
 
@@ -274,7 +276,6 @@
 
                 data () {
                     return {
-                        // ids: [],
                         projects: [],
                         wd: '',
                         wikiHTMLList: [],
@@ -284,7 +285,7 @@
 
                 created () {
                     if (IN_SEARCH_PAGE) {
-                        this.wd = decodeURIComponent(URL_QUERY.search) || ''
+                        this.wd = SEARCH_WORD || decodeURIComponent(URL_QUERY.search) || ''
                     }
                 },
 
@@ -300,7 +301,6 @@
                         url: 'https://www.tapd.cn/company/my_take_part_in_projects_list?project_id=' + CURR_PROJECT_ID
                     }).then(res => {
                         // console.log(res.data)
-                        // this.ids = res.data.match(/(?<=object-id=")\d+(?="><\/i>)/g)
                         this.projects = takePartInWorkspaces.map(n => ({ ...n, switches: JSON.parse(n.switches) }))
                         this.wikiHTMLList = Array(this.projects.length).fill().map(_ => '')
                         this.loaded = Array(this.projects.length).fill().map(_ => false)
@@ -316,6 +316,7 @@
 
                     onSearchInputEnter (val) {
                         if (val === this.wd) return
+                        sessionStorage.setItem('tapd-search-wiki/search_word', val)
                         this.wd = val
                         this.loaded = Array(this.projects.length).fill().map(_ => false)
                     }
