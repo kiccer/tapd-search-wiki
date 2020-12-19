@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      1.0.5
+// @version      1.0.6
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -162,11 +162,14 @@
         methods: {
             search () {
                 if (this.loading) return
+
+                // 保存搜索词
+                sessionStorage.setItem('tapd-search-wiki/search_word', this.keyword)
+
                 // 如果绑定了 enter 方法，那就支持无刷新更新数据
                 if (this.enter) {
                     this.enter(this.keyword)
                 } else {
-                    sessionStorage.setItem('tapd-search-wiki/search_word', this.keyword)
                     location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword)}`
                 }
             }
@@ -317,7 +320,6 @@
 
                     onSearchInputEnter (val) {
                         if (val === this.wd) return
-                        sessionStorage.setItem('tapd-search-wiki/search_word', val)
                         this.wd = val
                         this.loaded = Array(this.projects.length).fill().map(_ => false)
                     }
