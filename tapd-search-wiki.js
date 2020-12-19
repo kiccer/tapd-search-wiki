@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      1.0.4
+// @version      1.0.5
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -166,6 +166,7 @@
                 if (this.enter) {
                     this.enter(this.keyword)
                 } else {
+                    sessionStorage.setItem('tapd-search-wiki/search_word', this.keyword)
                     location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword)}`
                 }
             }
