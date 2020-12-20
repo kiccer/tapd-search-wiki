@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      1.0.6
+// @version      1.0.7
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -117,9 +117,6 @@
         console.log(222, err)
     })
 
-    // vue 实例
-    let searchVue, resultVue
-
     // vue 组件 (搜索框)
     Vue.component('search-input', {
         name: 'search-input',
@@ -218,7 +215,7 @@
             document.querySelector('.main-search-area')
         )
 
-        searchVue = new Vue({
+        new Vue({
             el: app,
 
             name: 'kiccer-tampermonkey-tapd-wiki-search',
@@ -239,10 +236,10 @@
             ;[
                 document.querySelector('.search-div'),
                 document.querySelector('.wiki-list'),
-                document.querySelector('.simple-pager'),
+                document.querySelector('.simple-pager')
             ].forEach(n => n && searchResultContainer.removeChild(n))
 
-            resultVue = new Vue({
+            new Vue({
                 el: resultDom,
 
                 name: 'kiccer-tampermonkey-tapd-wiki-result',
@@ -383,28 +380,4 @@
     if (IN_SHOW_PAGE) {
         // GM_addStyle(``)
     }
-
 })()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
