@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      1.0.7
+// @version      1.2.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -10,12 +10,13 @@
 // @include      /^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/(show\/|search\?.*)$/
 // @require      https://cdn.bootcdn.net/ajax/libs/vue/2.6.9/vue.js
 // @require      https://cdn.bootcdn.net/ajax/libs/axios/0.21.0/axios.js
+// @require      https://cdn.bootcdn.net/ajax/libs/tween.js/18.6.4/tween.umd.min.js
 // @noframes     这个千万别删掉！会出现死循环的！
 // @nocompat     Chrome
 // @grant        none
 // ==/UserScript==
 
-/* global Vue axios takePartInWorkspaces */
+/* global Vue axios TWEEN takePartInWorkspaces */
 // https://www.tampermonkey.net/documentation.php
 // https://element.eleme.cn/#/zh-CN/component/button
 
@@ -272,15 +273,29 @@
                             :project-info="projects[i]"
                             :loading="!loaded[i]"
                         />
+
+                        <transition name="fade">
+                            <div
+                                class="back-top"
+                                v-if="toggle.showBackTop"
+                                @click="backTop"
+                            >
+                                <i class="el-icon-arrow-up" />
+                            </div>
+                        </transition>
                     </div>
                 `,
 
                 data () {
                     return {
+                        toggle: {
+                            showBackTop: window.scrollY >= 200
+                        },
                         projects: [],
                         wd: '',
                         wikiHTMLList: [],
-                        loaded: []
+                        loaded: [],
+                        scroll: { x: 0, y: 0 }
                     }
                 },
 
@@ -297,6 +312,9 @@
                 },
 
                 mounted () {
+                    // 设置返回顶部按钮
+                    this.setBackTopBtn()
+
                     // 获取所有项目 id
                     axios({
                         url: 'https://www.tapd.cn/company/my_take_part_in_projects_list?project_id=' + CURR_PROJECT_ID
@@ -319,6 +337,35 @@
                         if (val === this.wd) return
                         this.wd = val
                         this.loaded = Array(this.projects.length).fill().map(_ => false)
+                    },
+
+                    setBackTopBtn () {
+                        function animate (time) {
+                            requestAnimationFrame(animate)
+                            TWEEN.update(time)
+                        }
+                        requestAnimationFrame(animate)
+                        window.addEventListener('scroll', e => {
+                            // console.log(e)
+                            this.toggle.showBackTop = window.scrollY >= 200
+                        })
+                    },
+
+                    backTop () {
+                        this.scroll = {
+                            x: window.scrollX,
+                            y: window.scrollY
+                        }
+
+                        new TWEEN.Tween(this.scroll) // Create a new tween that modifies 'coords'.
+                            .to({ x: 0, y: 0 }, 500) // Move to (300, 200) in 1 second.
+                            .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
+                            .onUpdate(() => {
+                                // Called after tween.js updates 'coords'.
+                                // Move 'box' to the position described by 'coords' with a CSS translation.
+                                window.scrollTo(this.scroll.x, this.scroll.y)
+                            })
+                            .start() // Start the tween immediately.
                     }
                 }
             })
@@ -337,6 +384,14 @@
 
         .kiccer-tampermonkey-tapd-wiki-search .el-input input {
             width: 200px;
+        }
+
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity .5s;
+        }
+
+        .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+            opacity: 0;
         }
     `)
 
@@ -368,6 +423,22 @@
 
             .wiki-list .el-input input {
                 width: 100%;
+            }
+
+            .wiki-list .back-top {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 50px;
+                height: 50px;
+                background-color: #f5f7fa;
+                position: fixed;
+                left: 790px;
+                bottom: 82px;
+                border: 1px solid rgb(220, 223, 230);
+                font-size: 20px;
+                border-radius: 4px;
+                cursor: pointer;
             }
 
             .hide-iframe {
