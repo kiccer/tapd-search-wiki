@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      1.2.1
+// @version      2.0.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -174,38 +174,6 @@
         }
     })
 
-    // 搜索结果展示组件
-    Vue.component('wiki-list', {
-        name: 'wiki-list',
-
-        template: `<div class="wiki-list-wrapper" v-html="parseHtml" />`,
-
-        props: {
-            html: String,
-            loading: Boolean,
-            projectInfo: {
-                type: Object,
-                default: () => ({})
-            }
-        },
-
-        computed: {
-            parseHtml () {
-                const logo = this.projectInfo.logo_src
-                    ? `<img class="project-logo" src="${this.projectInfo.logo_src}" />`
-                    : `<i class="project-logo project-logo-${this.projectInfo.logoId}">${this.projectInfo.project_name[0]}</i>`
-
-                return `
-                    <div class="current-project">
-                        ${logo}
-                        <span class="project-name">${this.projectInfo.project_name}</span>
-                    </div>
-                    ${this.html || `<div>${this.loading ? '正在搜索中...' : '啥也没找到...'}</div>`}
-                `
-            }
-        }
-    })
-
     // 初始化
     function init () {
         // 添加 vue 容器
@@ -266,15 +234,35 @@
                             @load="e => iframeLoaded(e, i)"
                         />
 
-                        <wiki-list
-                            v-for="(n, i) in wikiHTMLList"
-                            :key="i"
-                            :html="n"
-                            :project-info="projects[i]"
-                            :loading="!loaded[i]"
-                        />
+                        <el-tabs
+                            type="card"
+                            v-model="activeTab"
+                            v-if="projectsInTab.length"
+                        >
+                            <el-tab-pane
+                                v-for="(n, i) in projectsInTab"
+                                :key="n.id"
+                                :label="n.project_name"
+                                :name="n.pretty_name"
+                            >
+                                <div
+                                    class="tab-label"
+                                    slot="label"
+                                    v-html="tabLabelHtml(n.index)"
+                                />
 
-                        <transition name="fade">
+                                <transition name="fade">
+                                    <div
+                                        v-html="wikiHTMLList[n.index]"
+                                        v-if="n.pretty_name === activeTab"
+                                    />
+                                </transition>
+                            </el-tab-pane>
+                        </el-tabs>
+
+                        <div v-else>啥也没找到...</div>
+
+                        <transition name="fade">    
                             <div
                                 class="back-top"
                                 v-show="toggle.showBackTop"
@@ -295,7 +283,8 @@
                         wd: '',
                         wikiHTMLList: [],
                         loaded: [],
-                        scroll: { x: 0, y: 0 }
+                        scroll: { x: 0, y: 0 },
+                        activeTab: ''
                     }
                 },
 
@@ -308,6 +297,19 @@
                 computed: {
                     allLoaded () {
                         return !(this.loaded || []).includes(false)
+                    },
+
+                    projectsInTab () {
+                        return this.projects.filter((n, i) => this.wikiHTMLList[i])
+                    }
+                },
+
+                watch: {
+                    allLoaded (val, old) {
+                        if (val) {
+                            const firstTab = this.projectsInTab[0]
+                            this.activeTab = firstTab ? firstTab.pretty_name : ''
+                        }
                     }
                 },
 
@@ -320,7 +322,11 @@
                         url: 'https://www.tapd.cn/company/my_take_part_in_projects_list?project_id=' + CURR_PROJECT_ID
                     }).then(res => {
                         // console.log(res.data)
-                        this.projects = takePartInWorkspaces.map(n => ({ ...n, switches: JSON.parse(n.switches) }))
+                        this.projects = takePartInWorkspaces.map((n, i) => ({
+                            ...n,
+                            index: i,
+                            switches: JSON.parse(n.switches)
+                        }))
                         this.wikiHTMLList = Array(this.projects.length).fill().map(_ => '')
                         this.loaded = Array(this.projects.length).fill().map(_ => false)
                     })
@@ -366,6 +372,20 @@
                                 window.scrollTo(this.scroll.x, this.scroll.y)
                             })
                             .start() // Start the tween immediately.
+                    },
+
+                    tabLabelHtml (index) {
+                        const projectInfo = this.projects[index]
+                        const logo = projectInfo.logo_src
+                            ? `<img class="project-logo" src="${projectInfo.logo_src}" />`
+                            : `<i class="project-logo project-logo-${projectInfo.logoId}">${projectInfo.project_name[0]}</i>`
+
+                        return `
+                            <div class="current-project">
+                                ${logo}
+                                <span class="project-name">${projectInfo.project_name}</span>
+                            </div>
+                        `
                     }
                 }
             })
@@ -406,15 +426,39 @@
                 border: 1px solid #dcdfe6;
             }
 
-            .wiki-list .current-project {
-                width: 100%;
-                margin: -20px -20px 10px -20px;
-                padding: 10px 20px 10px 20px;
-                background-color: #f5f7fa;
+            .wiki-list .el-tabs__item {
+                padding: 0 10px !important;
             }
 
-            .wiki-list .current-project .project-name {
+            .wiki-list .el-tabs__item.is-active .project-name {
                 font-weight: bold;
+            }
+
+            .wiki-list .el-tabs__header {
+                margin-bottom: 0;
+            }
+
+            .wiki-list .el-tabs__content {
+                border: 1px solid #e4e7ed;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+                padding: 15px;
+            }
+
+            .wiki-list .tab-label {
+                display: inline-flex;
+                align-items: center;
+                width: auto;
+                height: 100%;
+            }
+
+            .wiki-list .current-project {
+                display: inline-block;
+                width: auto;
+                min-width: auto;
+                margin: 0;
+                height: 24px;
+                line-height: 24px;
             }
 
             .wiki-list .el-input {
@@ -434,7 +478,7 @@
                 background-color: #f5f7fa;
                 position: fixed;
                 left: 790px;
-                bottom: 82px;
+                bottom: 61px;
                 border: 1px solid rgb(220, 223, 230);
                 font-size: 20px;
                 border-radius: 4px;
