@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      2.0.0
+// @version      2.1.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -220,17 +220,11 @@
                             :enter="onSearchInputEnter"
                         />
 
-                        <el-alert
-                            type="warning"
-                            title="目前仅查询每个项目中wiki的第一页内容~"
-                            style="margin-bottom: 20px;"
-                        />
-
                         <iframe
                             class="hide-iframe"
                             v-for="(n, i) in projects"
                             :key="n.id"
-                            :src="'https://www.tapd.cn/' + n.id + '/markdown_wikis/search?search=' + wd"
+                            :src="iframeSrc(n)"
                             @load="e => iframeLoaded(e, i)"
                         />
 
@@ -252,15 +246,23 @@
                                 />
 
                                 <transition name="fade">
-                                    <div
-                                        v-html="wikiHTMLList[n.index]"
-                                        v-if="n.pretty_name === activeTab"
-                                    />
+                                    <div v-if="n.pretty_name === activeTab">
+                                        <transition name="fade" mode="out-in">
+                                            <div v-html="wikiHTMLList[n.index]" />
+                                        </transition>
+
+                                        <el-pagination
+                                            layout="prev, pager, next"
+                                            :current-page.sync="n.pageInfo.current"
+                                            :page-count="n.pageInfo.total"
+                                            v-if="n.pageInfo.total > 1"
+                                        />
+                                    </div>
                                 </transition>
                             </el-tab-pane>
                         </el-tabs>
 
-                        <div v-else>啥也没找到...</div>
+                        <div v-else>{{ allLoaded ? '啥也没找到' : '正在搜索中' }}...</div>
 
                         <transition name="fade">    
                             <div
@@ -325,6 +327,10 @@
                         this.projects = takePartInWorkspaces.map((n, i) => ({
                             ...n,
                             index: i,
+                            pageInfo: {
+                                current: 1,
+                                total: 1
+                            },
                             switches: JSON.parse(n.switches)
                         }))
                         this.wikiHTMLList = Array(this.projects.length).fill().map(_ => '')
@@ -334,15 +340,24 @@
 
                 methods: {
                     iframeLoaded (e, i) {
-                        const list = e.path[0].contentDocument.body.querySelector('.wiki-list')
+                        const frameBody = e.path[0].contentDocument.body
+                        const list = frameBody.querySelector('.wiki-list')
+                        const page = frameBody.querySelector('.simple-pager .current-page')
+                        const [current, total] = page ? page.innerText.split('/').map(n => +n) : [1, 1]
+                        // console.log([current, total])
                         this.$set(this.wikiHTMLList, i, list ? list.innerHTML : '')
                         this.$set(this.loaded, i, true)
+                        this.$set(this.projects[i].pageInfo, 'current', current)
+                        this.$set(this.projects[i].pageInfo, 'total', total)
                     },
 
                     onSearchInputEnter (val) {
                         if (val === this.wd) return
                         this.wd = val
                         this.loaded = Array(this.projects.length).fill().map(_ => false)
+                        this.projects.forEach((n, i) => {
+                            this.$set(this.projects[i].pageInfo, 'current', 1)
+                        })
                     },
 
                     setBackTopBtn () {
@@ -386,6 +401,10 @@
                                 <span class="project-name">${projectInfo.project_name}</span>
                             </div>
                         `
+                    },
+
+                    iframeSrc (n) {
+                        return `https://www.tapd.cn/${n.id}/markdown_wikis/search?search=${this.wd}&page=${n.pageInfo.current}`
                     }
                 }
             })
@@ -443,6 +462,10 @@
                 border-top: none;
                 border-radius: 0 0 4px 4px;
                 padding: 15px;
+            }
+
+            .wiki-list .el-pagination {
+                text-align: right;
             }
 
             .wiki-list .tab-label {
