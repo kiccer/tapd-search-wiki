@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      2.1.1
+// @version      3.0.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -49,12 +49,12 @@
     })()
 
     // GM_addStyle 方法
-    function GM_addStyle (css) {
-        const style = document.getElementById(GM_ADD_STYLE_HASH) || (() => {
+    function GM_addStyle (css, dom = document.head, id = GM_ADD_STYLE_HASH) {
+        const style = document.getElementById(id) || (() => {
             const style = document.createElement('style')
             style.type = 'text/css'
-            style.id = GM_ADD_STYLE_HASH
-            document.head.appendChild(style)
+            style.id = id
+            dom.appendChild(style)
             return style
         })()
         const sheet = style.sheet
@@ -179,10 +179,9 @@
         // 添加 vue 容器
         const headerBar = document.getElementById('hd')
         const app = document.createElement('div')
+        const mainSearchArea = document.querySelector('.main-search-area')
         headerBar.appendChild(app)
-        headerBar.removeChild(
-            document.querySelector('.main-search-area')
-        )
+        mainSearchArea && headerBar.removeChild(mainSearchArea)
 
         new Vue({
             el: app,
@@ -199,80 +198,104 @@
         // 如果是 search 页面则添加搜索结果列表容器
         if (IN_SEARCH_PAGE) {
             const searchResultContainer = document.querySelector('.search-result')
-            const resultDom = document.createElement('div')
-            searchResultContainer.appendChild(resultDom)
-
-            ;[
-                document.querySelector('.search-div'),
-                document.querySelector('.wiki-list'),
-                document.querySelector('.simple-pager')
-            ].forEach(n => n && searchResultContainer.removeChild(n))
 
             new Vue({
-                el: resultDom,
+                el: searchResultContainer,
 
                 name: 'kiccer-tampermonkey-tapd-wiki-result',
 
                 template: `
-                    <div class="wiki-list">
-                        <search-input
-                            :loading="!allLoaded"
-                            :enter="onSearchInputEnter"
-                        />
+                    <div class="search-result">
+                        <div class="wiki-list">
+                            <search-input
+                                :loading="!allLoaded"
+                                :enter="onSearchInputEnter"
+                            />
 
-                        <iframe
-                            class="hide-iframe"
-                            v-for="(n, i) in projects"
-                            :key="n.id"
-                            :src="iframeSrc(n)"
-                            @load="e => iframeLoaded(e, i)"
-                        />
-
-                        <el-tabs
-                            type="card"
-                            v-model="activeTab"
-                            v-if="projectsInTab.length"
-                        >
-                            <el-tab-pane
-                                v-for="(n, i) in projectsInTab"
+                            <iframe
+                                class="hide-iframe"
+                                v-for="(n, i) in projects"
                                 :key="n.id"
-                                :label="n.project_name"
-                                :name="n.pretty_name"
+                                :src="iframeSrc(n)"
+                                @load="e => iframeLoaded(e, i)"
+                            />
+
+                            <el-tabs
+                                type="card"
+                                v-model="activeTab"
+                                v-if="projectsInTab.length"
                             >
+                                <el-tab-pane
+                                    v-for="(n, i) in projectsInTab"
+                                    :key="n.id"
+                                    :label="n.project_name"
+                                    :name="n.pretty_name"
+                                >
+                                    <div
+                                        class="tab-label"
+                                        slot="label"
+                                        v-html="tabLabelHtml(n.index)"
+                                    />
+
+                                    <transition name="fade">
+                                        <div v-if="n.pretty_name === activeTab">
+                                            <!-- <div v-html="wikiHTMLList[n.index]" /> -->
+                                            <component
+                                                :is="wikiHtmlComp(wikiHTMLList[n.index])"
+                                                @open-preview="openPreview"
+                                            />
+
+                                            <el-pagination
+                                                layout="prev, pager, next"
+                                                :current-page.sync="n.pageInfo.current"
+                                                :page-count="n.pageInfo.total"
+                                                v-if="n.pageInfo.total > 1"
+                                            />
+                                        </div>
+                                    </transition>
+                                </el-tab-pane>
+                            </el-tabs>
+
+                            <div v-else>{{ allLoaded ? '啥也没找到' : '正在搜索中' }}...</div>
+
+                            <transition name="fade">
                                 <div
-                                    class="tab-label"
-                                    slot="label"
-                                    v-html="tabLabelHtml(n.index)"
-                                />
-
-                                <transition name="fade">
-                                    <div v-if="n.pretty_name === activeTab">
-                                        <transition name="fade" mode="out-in">
-                                            <div v-html="wikiHTMLList[n.index]" />
-                                        </transition>
-
-                                        <el-pagination
-                                            layout="prev, pager, next"
-                                            :current-page.sync="n.pageInfo.current"
-                                            :page-count="n.pageInfo.total"
-                                            v-if="n.pageInfo.total > 1"
-                                        />
-                                    </div>
-                                </transition>
-                            </el-tab-pane>
-                        </el-tabs>
-
-                        <div v-else>{{ allLoaded ? '啥也没找到' : '正在搜索中' }}...</div>
-
-                        <transition name="fade">
-                            <div
-                                class="back-top"
-                                v-show="toggle.showBackTop"
-                                @click="backTop"
+                                    class="back-top"
+                                    v-show="toggle.showBackTop"
+                                    @click="backTop"
+                                >
+                                    <i class="el-icon-arrow-up" />
+                                </div>
+                            </transition>
+                        </div>
+                        
+                        <div
+                            class="wiki-preview"
+                            v-show="previewFrames.length"
+                        >
+                            <el-tabs
+                                closable
+                                type="card"
+                                v-model="activePreviewTab"
+                                @tab-remove="removeWikiPreviewIframe"
                             >
-                                <i class="el-icon-arrow-up" />
-                            </div>
-                        </transition>
+                                <el-tab-pane
+                                    v-for="(n, i) in previewFrames"
+                                    :key="n.id"
+                                    :label="n.name"
+                                    :name="n.url"
+                                >
+                                    <transition name="fade">
+                                        <iframe
+                                            class="wiki-preview-iframe"
+                                            v-show="n.url === activePreviewTab"
+                                            :src="n.url"
+                                            @load="e => previewIframeLoaded(e, n)"
+                                        />
+                                    </transition>
+                                </el-tab-pane>
+                            </el-tabs>
+                        </div>
                     </div>
                 `,
 
@@ -286,7 +309,9 @@
                         wikiHTMLList: [],
                         loaded: [],
                         scroll: { x: 0, y: 0 },
-                        activeTab: ''
+                        activeTab: '',
+                        previewFrames: [],
+                        activePreviewTab: ''
                     }
                 },
 
@@ -405,6 +430,146 @@
 
                     iframeSrc (n) {
                         return `https://www.tapd.cn/${n.id}/markdown_wikis/search?search=${this.wd}&page=${n.pageInfo.current}`
+                    },
+
+                    wikiHtmlComp (html) {
+                        const urls = html.match(/(?<=<a target="_blank" href=").+(?=">.+<\/a>)/g)
+                        const names = html.match(/(?<=<div class="one-wiki-title" title=").+(?=">)/g)
+                        let index = -1
+
+                        html = html.replace(/(?<=<div class="one-wiki-title" title=".+">)[\s\n]+?(?=<a target="_blank" href=")/g, _ => {
+                            index++
+                            return `
+                                <el-button
+                                    type="text"
+                                    icon=""
+                                    @click="$emit('open-preview', {
+                                        url: '${urls[index]}',
+                                        name: '${names[index]}'
+                                    })"
+                                >
+                                    在右侧打开预览
+                                    <i class="el-icon-d-arrow-right el-icon--right" />
+                                </el-button>
+                            `
+                        })
+
+                        return {
+                            name: 'wiki-html-comp',
+                            template: `
+                                <div>
+                                    ${html}
+                                </div>
+                            `
+                        }
+                    },
+
+                    openPreview ({ url, name }) {
+                        // console.log(url, name)
+                        this.activePreviewTab = url
+
+                        if (this.previewFrames.every(n => n.url !== url)) {
+                            this.previewFrames.push({ url, name })
+                        }
+                    },
+
+                    removeWikiPreviewIframe (url) {
+                        this.previewFrames = this.previewFrames.filter((n, i) => {
+                            if (this.activePreviewTab === n.url && n.url === url) {
+                                this.activePreviewTab = i - 1 >= 0
+                                    ? this.previewFrames[i - 1].url
+                                    : ''
+                            }
+
+                            return n.url !== url
+                        })
+                    },
+
+                    previewIframeLoaded (e, { url, name }) {
+                        const frameBody = e.path[0].contentDocument.body
+                        const point = [[]]
+
+                        ;[
+                            // 这些元素会被移除
+                            '#display_headers',
+                            '#headers_block',
+                            '#left-tree',
+                            '#wiki_tag',
+                            '#wiki_attachment',
+                            '#wiki_comment',
+                            '.wiki-nav',
+                            '.nav-main-wrap',
+                            '.main-search-area',
+                            '.cloud-guide-switch',
+                            '.toolbar',
+                            '.wiki-option-warp',
+                            '.attachment-upload-wrap'
+                        ].forEach(n => {
+                            const dom = frameBody.querySelector(n)
+                            dom && dom.parentElement.removeChild(dom)
+                        })
+
+                        ;[...frameBody.querySelectorAll('#wiki_content #searchable > *')].forEach(n => {
+                            const lastArr = point[point.length - 1]
+                            if (n.tagName === 'H1') {
+                                point.push([n])
+                            } else {
+                                lastArr.push(n)
+                            }
+                        })
+
+                        point.some(n => {
+                            if (n.some(m => {
+                                return new RegExp(this.wd.split(' '), 'ig').test(m.innerText)
+                            })) {
+                                setTimeout(() => {
+                                    n[0].childNodes[2].click()
+                                }, 100)
+                                return true
+                            }
+                            return false
+                        })
+
+                        GM_addStyle(`
+                            .project-nav {
+                                left: 0;
+                                min-width: auto;
+                            }
+
+                            .frame-main {
+                                min-width: auto !important;
+                            }
+
+                            .wiki-main {
+                                padding: 20px !important;
+                                margin-left: 0 !important;
+                                max-width: 100%;
+                            }
+
+                            #page-content, #page-wrapper {
+                                margin-left: 0 !important;
+                            }
+
+                            .tui-skin-lego #page-content {
+                                min-width: auto;
+                            }
+
+                            .wiki-tag-wrapper {
+                                margin-right: 0;
+                            }
+
+                            .wiki-wrap {
+                                margin-top: 15px !important;
+                            }
+
+                            .wiki-body table {
+                                width: 100%;
+                            }
+
+                            .cherry-markdown .cherry-table-container .cherry-table td {
+                                min-width: auto;
+                            }
+                        `, e.path[0].contentDocument.head, 'wiki-preview-iframe-css')
                     }
                 }
             })
@@ -437,6 +602,11 @@
     // 搜索页样式
     if (IN_SEARCH_PAGE) {
         GM_addStyle(`
+            .el-tabs__item {
+                padding: 0 10px !important;
+                user-select: none;
+            }
+
             .wiki-list-wrapper {
                 padding: 20px;
                 margin-bottom: 20px;
@@ -508,8 +678,45 @@
                 cursor: pointer;
             }
 
+            .wiki-list .one-wiki-title .el-button {
+                padding: 0;
+                float: right;
+                line-height: 21px;
+            }
+
             .hide-iframe {
                 display: none;
+            }
+
+            .search-result .wiki-preview {
+                position: fixed;
+                inset: 124px 60px 60px 860px;
+            }
+
+            .search-result .wiki-preview .wiki-preview-iframe {
+                width: 100%;
+                height: 100%;
+                border-radius: 4px;
+                border: none;
+            }
+
+            .search-result .wiki-preview .el-tabs {
+                height: 100%;
+            }
+
+            .search-result .wiki-preview .el-tabs .el-tabs__header {
+                margin-bottom: 0;
+            }
+
+            .search-result .wiki-preview .el-tabs .el-tabs__content {
+                height: calc(100% - 41px);
+                border: 1px solid #e4e7ed;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+            }
+
+            .search-result .wiki-preview .el-tabs .el-tabs__content .el-tab-pane {
+                height: 100%;
             }
         `)
     }
