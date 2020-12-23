@@ -54,6 +54,7 @@
 1. 安装 `chrome` 扩展插件 [`tampermonkey`](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo?hl=zh-CN)(需科学上网)
     - 实在没有办法就下载本项目提供的老版 [`tampermonkey (v4.9)`](./resources/Tampermonkey_v4.9/Tampermonkey_v4.9.crx{:download})
 1. 安装最新版 [tapd-search-wiki](https://greasyfork.org/zh-CN/scripts/418789-tapd-%E4%B8%80%E9%94%AE%E6%9F%A5%E8%AF%A2%E6%89%80%E6%9C%89%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84wiki) 插件
+
 ![](./img/install.png)
 
 ### 描述
