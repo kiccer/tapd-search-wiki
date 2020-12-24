@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.1.0
+// @version      3.1.1
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -566,7 +566,7 @@
 
                         point.some(n => {
                             if (n.some(m => {
-                                return new RegExp(wd.split(' '), 'ig').test(m.innerText)
+                                return new RegExp(wd.split(' ').join('|'), 'ig').test(m.innerText)
                             })) {
                                 setTimeout(() => {
                                     if (/^H\d$/i.test(n[0].tagName)) {
