@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.0.1
+// @version      3.0.2
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -433,7 +433,7 @@
                     },
 
                     wikiHtmlComp (html) {
-                        const urls = html.match(/(?<=<a target="_blank" href=").+(?=">.+<\/a>)/g)
+                        const urls = html.match(/(?<=<a target="_blank" href=").+?(?=">)/g)
                         const names = html.match(/(?<=<div class="one-wiki-title" title=").+(?=">)/g)
                         let index = -1
 
