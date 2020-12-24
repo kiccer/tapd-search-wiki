@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.2.0
+// @version      3.3.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -161,6 +161,9 @@
             search () {
                 if (this.loading) return
 
+                // 去除前后空格
+                this.keyword = this.keyword.replace(/^\s+|\s+$/g, '')
+
                 // 保存搜索词
                 sessionStorage.setItem('tapd-search-wiki/search_word', this.keyword)
 
@@ -279,17 +282,39 @@
                             v-show="previewFrames.length"
                         >
                             <el-tabs
-                                closable
+                                editable
                                 type="card"
                                 v-model="activePreviewTab"
                                 @tab-remove="removeWikiPreviewIframe"
+                                @tab-add="addWikiPreviewIframe"
                             >
                                 <el-tab-pane
+                                    v-loading="n.loading"
                                     v-for="(n, i) in previewFrames"
                                     :key="n.id"
-                                    :label="n.name"
                                     :name="n.url"
                                 >
+                                    <span
+                                        slot="label"
+                                        :class="{
+                                            ellipsis: !n.name
+                                        }"
+                                    >
+                                        <el-tooltip
+                                            effect="light"
+                                            placement="top"
+                                            :open-delay="500"
+                                        >
+                                            <div slot="content">
+                                                <h3>{{ n.name }}</h3>
+                                                <p><a :href="n.url" target="_blank">{{ n.url }}</a></p>
+                                                <p>关键词：{{ n.wd }}</p>
+                                            </div>
+
+                                            <span>{{ n.name || n.url }}</span>
+                                        </el-tooltip>
+                                    </span>
+
                                     <transition name="fade">
                                         <iframe
                                             class="wiki-preview-iframe"
@@ -301,13 +326,40 @@
                                 </el-tab-pane>
                             </el-tabs>
                         </div>
+
+                        <el-dialog
+                            title="增加预览页面"
+                            width="30%"
+                            :visible.sync="toggle.addPreviewPopup"
+                            @closed="addPreviewPopupClosed"
+                        >
+                            <el-input
+                                autosize
+                                type="textarea"
+                                placeholder="请输入网址"
+                                v-model="addPreviewPopupData.url"
+                                @keydown.enter.native="addPreviewFrame"
+                            />
+
+                            <span slot="footer" class="dialog-footer">
+                                <el-button
+                                    @click="toggle.addPreviewPopup = false"
+                                >取 消</el-button>
+
+                                <el-button
+                                    type="primary"
+                                    @click="addPreviewFrame"
+                                >确 定</el-button>
+                            </span>
+                        </el-dialog>
                     </div>
                 `,
 
                 data () {
                     return {
                         toggle: {
-                            showBackTop: window.scrollY >= 200
+                            showBackTop: window.scrollY >= 200,
+                            addPreviewPopup: false
                         },
                         projects: [],
                         wd: '',
@@ -316,7 +368,10 @@
                         scroll: { x: 0, y: 0 },
                         activeTab: '',
                         previewFrames: [],
-                        activePreviewTab: ''
+                        activePreviewTab: sessionStorage.getItem('tapd-search-wiki/active_preview_tab') || '',
+                        addPreviewPopupData: {
+                            url: ''
+                        }
                     }
                 },
 
@@ -343,13 +398,19 @@
                             sessionStorage.setItem('tapd-search-wiki/preview_frames', JSON.stringify(val))
                         },
                         deep: true
+                    },
+
+                    activePreviewTab (val, old) {
+                        sessionStorage.setItem('tapd-search-wiki/active_preview_tab', val)
                     }
                 },
 
                 created () {
                     this.wd = SEARCH_WORD || decodeURIComponent(URL_QUERY.search) || ''
-                    this.previewFrames = JSON.parse(sessionStorage.getItem('tapd-search-wiki/preview_frames')) || []
-                    this.previewFrames.length && (this.activePreviewTab = this.previewFrames.slice(-1)[0].url)
+                    this.previewFrames = JSON.parse(sessionStorage.getItem('tapd-search-wiki/preview_frames')).map(n => ({
+                        ...n,
+                        loading: true
+                    })) || []
                 },
 
                 mounted () {
@@ -426,6 +487,7 @@
                             .start() // Start the tween immediately.
                     },
 
+                    // 搜索结果列表标签结构
                     tabLabelHtml (index) {
                         const projectInfo = this.projects[index]
                         const logo = projectInfo.logo_src
@@ -444,6 +506,7 @@
                         return `https://www.tapd.cn/${n.id}/markdown_wikis/search?search=${encodeURIComponent(this.wd.replaceAll('*', ' '))}&page=${n.pageInfo.current}`
                     },
 
+                    // wiki搜索结果列表组件 (为了让右侧打开按钮绑定事件)
                     wikiHtmlComp (html) {
                         const urls = html.match(/(?<=<a target="_blank" href=").+?(?=">)/g)
                         const names = html.match(/(?<=<div class="one-wiki-title" title=").+(?=">)/g)
@@ -476,31 +539,70 @@
                         }
                     },
 
+                    // 打开预览页面
                     openPreview ({ url, name }) {
                         // console.log(url, name)
                         this.activePreviewTab = url
 
                         if (this.previewFrames.every(n => n.url !== url)) {
-                            this.previewFrames.push({ url, name, wd: this.wd })
+                            this.previewFrames.push({
+                                url,
+                                name,
+                                wd: this.wd,
+                                loading: true
+                            })
+                        } else {
+                            const frameInfo = this.previewFrames.find(n => n.url === url)
+                            if (frameInfo) {
+                                this.$set(frameInfo, 'wd', this.wd)
+                                this.rollingForecast(frameInfo)
+                            }
                         }
                     },
 
+                    // 关闭预览页面
                     removeWikiPreviewIframe (url) {
+                        let prevUrl = ''
+
                         this.previewFrames = this.previewFrames.filter((n, i) => {
-                            if (this.activePreviewTab === n.url && n.url === url) {
-                                this.activePreviewTab = i - 1 >= 0
-                                    ? this.previewFrames[i - 1].url
-                                    : ''
+                            const isRemove = n.url === url
+
+                            if (this.activePreviewTab === n.url && isRemove) {
+                                this.activePreviewTab = prevUrl || (this.previewFrames.slice(-1)[0] || {}).url || ''
                             }
+
+                            prevUrl = n.url
 
                             return n.url !== url
                         })
                     },
 
-                    previewIframeLoaded (e, { url, name, wd }) {
-                        const frameBody = e.path[0].contentDocument.body
-                        const point = [[]]
+                    // 增加预览页面
+                    addWikiPreviewIframe () {
+                        this.toggle.addPreviewPopup = true
+                    },
 
+                    // 当预览页面加载完毕时
+                    previewIframeLoaded (e, frameInfo) {
+                        // 保存 document
+                        this.$set(frameInfo, 'loading', false)
+                        this.$set(frameInfo, 'document', e.path[0].contentDocument)
+
+                        // 如果没有标题就设置标题
+                        if (!frameInfo.name) {
+                            const timer = setInterval(() => {
+                                const dom = frameInfo.document.querySelector('#wikiName')
+                                if (dom) {
+                                    this.$set(frameInfo, 'name', dom.innerText)
+                                    clearInterval(timer)
+                                }
+                            }, 100)
+                        }
+
+                        // 滚动预测
+                        this.rollingForecast(frameInfo)
+
+                        // 样式覆盖
                         GM_addStyle(`
                             #display_headers,
                             #headers_block,
@@ -553,9 +655,23 @@
                             .cherry-markdown .cherry-table-container .cherry-table td {
                                 min-width: auto;
                             }
-                        `, e.path[0].contentDocument.head, 'wiki-preview-iframe-css')
+                        `, frameInfo.document.head, 'wiki-preview-iframe-css')
+                    },
 
-                        ;[...frameBody.querySelectorAll('#wiki_content #searchable > *')].forEach(n => {
+                    // 滚动预测
+                    rollingForecast (frameInfo) {
+                        const point = [[]]
+                        const {
+                            // url,
+                            // name,
+                            wd = '',
+                            document
+                        } = frameInfo
+
+                        if (!(wd && document)) return
+
+                        // 划分锚点范围
+                        ;[...document.body.querySelectorAll('#wiki_content #searchable > *')].forEach(n => {
                             const lastArr = point[point.length - 1]
                             if (/^H\d$/i.test(n.tagName)) {
                                 point.push([n])
@@ -564,22 +680,65 @@
                             }
                         })
 
-                        point.some(n => {
+                        // 搜索目标锚点，并触发
+                        for (const n of point) {
                             if (n.some(m => {
-                                console.log(
-                                    wd.split(' ').join('|').replace(/\*/g, '.*?')
-                                )
                                 return new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test(m.innerText)
                             })) {
-                                setTimeout(() => {
-                                    if (/^H\d$/i.test(n[0].tagName)) {
+                                const timer = setInterval(() => {
+                                    if (/^H\d$/i.test(n[0].tagName) && n[0].childNodes[2]) {
                                         n[0].childNodes[2].click()
+                                        clearInterval(timer)
                                     }
-                                }, 500)
-                                return true
+                                }, 100)
+                                break
                             }
-                            return false
-                        })
+                        }
+
+                        // point.some(n => {
+                        //     if (n.some(m => {
+                        //         return new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test(m.innerText)
+                        //     })) {
+                        //         const timer = setInterval(() => {
+                        //             if (/^H\d$/i.test(n[0].tagName) && n[0].childNodes[2]) {
+                        //                 n[0].childNodes[2].click()
+                        //                 clearInterval(timer)
+                        //             }
+                        //         }, 100)
+                        //         return true
+                        //     }
+                        //     return false
+                        // })
+                    },
+
+                    // 在增加预览页面弹窗关闭之后
+                    addPreviewPopupClosed () {
+                        this.addPreviewPopupData.url = ''
+                    },
+
+                    // 增加预览页面（弹窗点击确定）
+                    addPreviewFrame () {
+                        const url = this.addPreviewPopupData.url
+
+                        if (!url) {
+                            this.$message.error('请输入网址')
+                            return
+                        }
+
+                        if (!/^https:\/\/www\.tapd\.cn\/\d+\/markdown_wikis\/show\/#\d+/.test(url)) {
+                            this.$message.error('只能输入wiki结果页地址 ')
+                            return
+                        }
+
+                        const item = this.previewFrames.find(n => n.url === url)
+
+                        this.activePreviewTab = url
+
+                        if (!item) {
+                            this.previewFrames.push({ url })
+                        }
+
+                        this.toggle.addPreviewPopup = false
                     }
                 }
             })
@@ -612,6 +771,10 @@
     // 搜索页样式
     if (IN_SEARCH_PAGE) {
         GM_addStyle(`
+            .search-result {
+                min-height: calc(100vh - 184px) !important;
+            }
+
             .el-tabs__item {
                 padding: 0 10px !important;
                 user-select: none;
@@ -702,11 +865,7 @@
                 display: none;
             }
 
-            .search-result {
-                min-height: calc(100vh - 184px) !important;
-            }
-
-            .search-result .wiki-preview {
+            .wiki-preview {
                 position: fixed;
                 top: 124px;
                 right: 60px;
@@ -714,30 +873,44 @@
                 left: 860px;
             }
 
-            .search-result .wiki-preview .wiki-preview-iframe {
+            .wiki-preview .wiki-preview-iframe {
                 width: 100%;
                 height: 100%;
                 border-radius: 4px;
                 border: none;
             }
 
-            .search-result .wiki-preview .el-tabs {
+            .wiki-preview .el-tabs {
                 height: 100%;
             }
 
-            .search-result .wiki-preview .el-tabs .el-tabs__header {
+            .wiki-preview .el-tabs .el-tabs__header {
                 margin-bottom: 0;
             }
 
-            .search-result .wiki-preview .el-tabs .el-tabs__content {
+            .wiki-preview .el-tabs .el-tabs__content {
                 height: calc(100% - 41px);
                 border: 1px solid #e4e7ed;
                 border-top: none;
                 border-radius: 0 0 4px 4px;
             }
 
-            .search-result .wiki-preview .el-tabs .el-tabs__content .el-tab-pane {
+            .wiki-preview .el-tabs .el-tabs__content .el-tab-pane {
                 height: 100%;
+            }
+
+            .wiki-preview .el-tabs__new-tab:focus {
+                outline: none;
+            }
+
+            .wiki-preview .el-tabs__item .ellipsis {
+                display: inline-block;
+                line-height: 1;
+                max-width: 200px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                margin-bottom: -2px;
             }
         `)
     }
