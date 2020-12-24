@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.0.4
+// @version      3.1.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -315,12 +315,6 @@
                     }
                 },
 
-                created () {
-                    if (IN_SEARCH_PAGE) {
-                        this.wd = SEARCH_WORD || decodeURIComponent(URL_QUERY.search) || ''
-                    }
-                },
-
                 computed: {
                     allLoaded () {
                         return !(this.loaded || []).includes(false)
@@ -337,7 +331,21 @@
                             const firstTab = this.projectsInTab[0]
                             this.activeTab = firstTab ? firstTab.pretty_name : ''
                         }
+                    },
+
+                    previewFrames: {
+                        handler (val, old) {
+                            console.log(111)
+                            sessionStorage.setItem('tapd-search-wiki/preview_frames', JSON.stringify(val))
+                        },
+                        deep: true
                     }
+                },
+
+                created () {
+                    this.wd = SEARCH_WORD || decodeURIComponent(URL_QUERY.search) || ''
+                    this.previewFrames = JSON.parse(sessionStorage.getItem('tapd-search-wiki/preview_frames')) || []
+                    this.previewFrames.length && (this.activePreviewTab = this.previewFrames.slice(-1)[0].url)
                 },
 
                 mounted () {
@@ -469,7 +477,7 @@
                         this.activePreviewTab = url
 
                         if (this.previewFrames.every(n => n.url !== url)) {
-                            this.previewFrames.push({ url, name })
+                            this.previewFrames.push({ url, name, wd: this.wd })
                         }
                     },
 
@@ -485,7 +493,7 @@
                         })
                     },
 
-                    previewIframeLoaded (e, { url, name }) {
+                    previewIframeLoaded (e, { url, name, wd }) {
                         const frameBody = e.path[0].contentDocument.body
                         const point = [[]]
 
@@ -558,11 +566,13 @@
 
                         point.some(n => {
                             if (n.some(m => {
-                                return new RegExp(this.wd.split(' '), 'ig').test(m.innerText)
+                                return new RegExp(wd.split(' '), 'ig').test(m.innerText)
                             })) {
                                 setTimeout(() => {
-                                    n[0].childNodes[2].click()
-                                }, 100)
+                                    if (/^H\d$/i.test(n[0].tagName)) {
+                                        n[0].childNodes[2].click()
+                                    }
+                                }, 500)
                                 return true
                             }
                             return false
