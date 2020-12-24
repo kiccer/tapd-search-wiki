@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.1.3
+// @version      3.2.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -168,7 +168,7 @@
                 if (this.enter) {
                     this.enter(this.keyword)
                 } else {
-                    location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword)}`
+                    location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword.replaceAll('*', ' '))}`
                 }
             }
         }
@@ -210,6 +210,11 @@
                             <search-input
                                 :loading="!allLoaded"
                                 :enter="onSearchInputEnter"
+                            />
+
+                            <el-alert
+                                title="支持匹配符号：* (任意个数任意字符)"
+                                type="info"
                             />
 
                             <iframe
@@ -436,7 +441,7 @@
                     },
 
                     iframeSrc (n) {
-                        return `https://www.tapd.cn/${n.id}/markdown_wikis/search?search=${this.wd}&page=${n.pageInfo.current}`
+                        return `https://www.tapd.cn/${n.id}/markdown_wikis/search?search=${encodeURIComponent(this.wd.replaceAll('*', ' '))}&page=${n.pageInfo.current}`
                     },
 
                     wikiHtmlComp (html) {
@@ -561,7 +566,10 @@
 
                         point.some(n => {
                             if (n.some(m => {
-                                return new RegExp(wd.split(' ').join('|'), 'ig').test(m.innerText)
+                                console.log(
+                                    wd.split(' ').join('|').replace(/\*/g, '.*?')
+                                )
+                                return new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test(m.innerText)
                             })) {
                                 setTimeout(() => {
                                     if (/^H\d$/i.test(n[0].tagName)) {
@@ -615,6 +623,10 @@
                 border-radius: 4px;
                 // box-shadow: 0 0 10px rgba(128,145,165,0.2);
                 border: 1px solid #dcdfe6;
+            }
+
+            .wiki-list .el-alert {
+                margin-bottom: 20px;
             }
 
             .wiki-list .el-tabs__item {
