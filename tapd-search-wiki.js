@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.1.2
+// @version      3.1.3
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -543,10 +543,6 @@
 
                             .wiki-wrap {
                                 margin-top: 15px !important;
-                            }
-
-                            .wiki-body table {
-                                width: 100%;
                             }
 
                             .cherry-markdown .cherry-table-container .cherry-table td {
