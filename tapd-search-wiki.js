@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.0.2
+// @version      3.0.3
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -489,26 +489,28 @@
                         const frameBody = e.path[0].contentDocument.body
                         const point = [[]]
 
-                        ;[
-                            // 这些元素会被移除
-                            '#display_headers',
-                            '#headers_block',
-                            '#left-tree',
-                            '#wiki_tag',
-                            '#wiki_attachment',
-                            '#wiki_comment',
-                            '.wiki-nav',
-                            '.nav-main-wrap',
-                            '.main-search-area',
-                            '.cloud-guide-switch',
-                            '.toolbar',
-                            '.wiki-option-warp',
-                            '.attachment-upload-wrap',
-                            '.wiki-nav-small'
-                        ].forEach(n => {
-                            const dom = frameBody.querySelector(n)
-                            dom && dom.parentElement.removeChild(dom)
-                        })
+                        setTimeout(() => {
+                            ;[
+                                // 这些元素会被移除
+                                '#display_headers',
+                                '#headers_block',
+                                '#left-tree',
+                                '#wiki_tag',
+                                '#wiki_attachment',
+                                '#wiki_comment',
+                                '.wiki-nav',
+                                '.nav-main-wrap',
+                                '.main-search-area',
+                                '.cloud-guide-switch',
+                                '.toolbar',
+                                '.wiki-option-warp',
+                                '.attachment-upload-wrap',
+                                '.wiki-nav-small'
+                            ].forEach(n => {
+                                const dom = frameBody.querySelector(n)
+                                dom && dom.parentElement.removeChild(dom)
+                            })
+                        }, 500)
 
                         GM_addStyle(`
                             .project-nav {
