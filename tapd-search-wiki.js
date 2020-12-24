@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.0.0
+// @version      3.0.1
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -503,31 +503,11 @@
                             '.cloud-guide-switch',
                             '.toolbar',
                             '.wiki-option-warp',
-                            '.attachment-upload-wrap'
+                            '.attachment-upload-wrap',
+                            '.wiki-nav-small'
                         ].forEach(n => {
                             const dom = frameBody.querySelector(n)
                             dom && dom.parentElement.removeChild(dom)
-                        })
-
-                        ;[...frameBody.querySelectorAll('#wiki_content #searchable > *')].forEach(n => {
-                            const lastArr = point[point.length - 1]
-                            if (n.tagName === 'H1') {
-                                point.push([n])
-                            } else {
-                                lastArr.push(n)
-                            }
-                        })
-
-                        point.some(n => {
-                            if (n.some(m => {
-                                return new RegExp(this.wd.split(' '), 'ig').test(m.innerText)
-                            })) {
-                                setTimeout(() => {
-                                    n[0].childNodes[2].click()
-                                }, 100)
-                                return true
-                            }
-                            return false
                         })
 
                         GM_addStyle(`
@@ -570,6 +550,27 @@
                                 min-width: auto;
                             }
                         `, e.path[0].contentDocument.head, 'wiki-preview-iframe-css')
+
+                        ;[...frameBody.querySelectorAll('#wiki_content #searchable > *')].forEach(n => {
+                            const lastArr = point[point.length - 1]
+                            if (/^H\d$/i.test(n.tagName)) {
+                                point.push([n])
+                            } else {
+                                lastArr.push(n)
+                            }
+                        })
+
+                        point.some(n => {
+                            if (n.some(m => {
+                                return new RegExp(this.wd.split(' '), 'ig').test(m.innerText)
+                            })) {
+                                setTimeout(() => {
+                                    n[0].childNodes[2].click()
+                                }, 100)
+                                return true
+                            }
+                            return false
+                        })
                     }
                 }
             })
@@ -688,9 +689,16 @@
                 display: none;
             }
 
+            .search-result {
+                min-height: calc(100vh - 184px) !important;
+            }
+
             .search-result .wiki-preview {
                 position: fixed;
-                inset: 124px 60px 60px 860px;
+                top: 124px;
+                right: 60px;
+                bottom: 60px;
+                left: 860px;
             }
 
             .search-result .wiki-preview .wiki-preview-iframe {
