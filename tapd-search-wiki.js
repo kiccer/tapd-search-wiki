@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.3.0
+// @version      3.3.1
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -209,6 +209,7 @@
 
                 template: `
                     <div class="search-result">
+                        <!-- 左侧搜索结果列表 -->
                         <div class="wiki-list">
                             <search-input
                                 :loading="!allLoaded"
@@ -277,6 +278,7 @@
                             </transition>
                         </div>
                         
+                        <!-- 右侧预览页面 -->
                         <div
                             class="wiki-preview"
                             v-show="previewFrames.length"
@@ -291,7 +293,7 @@
                                 <el-tab-pane
                                     v-loading="n.loading"
                                     v-for="(n, i) in previewFrames"
-                                    :key="n.id"
+                                    :key="n.url"
                                     :name="n.url"
                                 >
                                     <span
@@ -327,6 +329,7 @@
                             </el-tabs>
                         </div>
 
+                        <!-- 增加预览页面弹窗 -->
                         <el-dialog
                             title="增加预览页面"
                             width="30%"
@@ -562,13 +565,14 @@
 
                     // 关闭预览页面
                     removeWikiPreviewIframe (url) {
+                        const lastUrl = (this.previewFrames.slice(-1)[0] || {}).url || ''
                         let prevUrl = ''
 
                         this.previewFrames = this.previewFrames.filter((n, i) => {
                             const isRemove = n.url === url
 
                             if (this.activePreviewTab === n.url && isRemove) {
-                                this.activePreviewTab = prevUrl || (this.previewFrames.slice(-1)[0] || {}).url || ''
+                                this.activePreviewTab = prevUrl || lastUrl || ''
                             }
 
                             prevUrl = n.url
