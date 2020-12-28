@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.3.1
+// @version      3.3.2
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -171,7 +171,7 @@
                 if (this.enter) {
                     this.enter(this.keyword)
                 } else {
-                    location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword.replaceAll('*', ' '))}`
+                    location.href = `https://www.tapd.cn/${CURR_PROJECT_ID}/markdown_wikis/search?search=${encodeURIComponent(this.keyword.replace(/\*/g, ' '))}`
                 }
             }
         }
@@ -506,7 +506,7 @@
                     },
 
                     iframeSrc (n) {
-                        return `https://www.tapd.cn/${n.id}/markdown_wikis/search?search=${encodeURIComponent(this.wd.replaceAll('*', ' '))}&page=${n.pageInfo.current}`
+                        return `https://www.tapd.cn/${n.id}/markdown_wikis/search?search=${encodeURIComponent(this.wd.replace(/\*/g, ' '))}&page=${n.pageInfo.current}`
                     },
 
                     // wiki搜索结果列表组件 (为了让右侧打开按钮绑定事件)
