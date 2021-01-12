@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.3.2
+// @version      3.4.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -16,7 +16,7 @@
 // @grant        none
 // ==/UserScript==
 
-/* global Vue axios TWEEN takePartInWorkspaces */
+/* global Vue axios TWEEN takePartInWorkspaces $ */
 // https://www.tampermonkey.net/documentation.php
 // https://element.eleme.cn/#/zh-CN/component/button
 
@@ -604,7 +604,9 @@
                         }
 
                         // 滚动预测
-                        this.rollingForecast(frameInfo)
+                        setTimeout(() => {
+                            this.rollingForecast(frameInfo)
+                        })
 
                         // 样式覆盖
                         GM_addStyle(`
@@ -664,7 +666,6 @@
 
                     // 滚动预测
                     rollingForecast (frameInfo) {
-                        const point = [[]]
                         const {
                             // url,
                             // name,
@@ -674,45 +675,30 @@
 
                         if (!(wd && document)) return
 
-                        // 划分锚点范围
-                        ;[...document.body.querySelectorAll('#wiki_content #searchable > *')].forEach(n => {
-                            const lastArr = point[point.length - 1]
-                            if (/^H\d$/i.test(n.tagName)) {
-                                point.push([n])
-                            } else {
-                                lastArr.push(n)
+                        let isFind = false // 只滚动至第一个找到的元素位置
+
+                        $(document).find('#searchable > *').each((i, n) => {
+                            if (isFind) return
+                            if (new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test($(n).text())) {
+                                const wikiRight = document.querySelector('#wiki_right')
+                                const tweenData = {
+                                    x: wikiRight.scrollLeft,
+                                    y: wikiRight.scrollTop
+                                }
+
+                                new TWEEN.Tween(tweenData) // Create a new tween that modifies 'coords'.
+                                    .to({ x: 0, y: n.offsetTop + 100 }, 500) // Move to (300, 200) in 1 second.
+                                    .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
+                                    .onUpdate(() => {
+                                        // Called after tween.js updates 'coords'.
+                                        // Move 'box' to the position described by 'coords' with a CSS translation.
+                                        wikiRight.scrollTo(tweenData.x, tweenData.y)
+                                    })
+                                    .start() // Start the tween immediately.
+
+                                isFind = true
                             }
                         })
-
-                        // 搜索目标锚点，并触发
-                        for (const n of point) {
-                            if (n.some(m => {
-                                return new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test(m.innerText)
-                            })) {
-                                const timer = setInterval(() => {
-                                    if (/^H\d$/i.test(n[0].tagName) && n[0].childNodes[2]) {
-                                        n[0].childNodes[2].click()
-                                        clearInterval(timer)
-                                    }
-                                }, 100)
-                                break
-                            }
-                        }
-
-                        // point.some(n => {
-                        //     if (n.some(m => {
-                        //         return new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test(m.innerText)
-                        //     })) {
-                        //         const timer = setInterval(() => {
-                        //             if (/^H\d$/i.test(n[0].tagName) && n[0].childNodes[2]) {
-                        //                 n[0].childNodes[2].click()
-                        //                 clearInterval(timer)
-                        //             }
-                        //         }, 100)
-                        //         return true
-                        //     }
-                        //     return false
-                        // })
                     },
 
                     // 在增加预览页面弹窗关闭之后
