@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.4.2
+// @version      3.4.3
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -308,7 +308,10 @@
                                             <p>关键词：{{ n.wd }}</p>
                                         </div>
 
-                                        <span class="ellipsis">{{ n.name || n.url }}</span>
+                                        <span
+                                            class="ellipsis"
+                                            @dblclick="scrollForecast(n)"
+                                        >{{ n.name || n.url }}</span>
                                     </el-tooltip>
 
                                     <transition name="fade">
@@ -553,9 +556,7 @@
                             if (frameInfo) {
                                 this.$set(frameInfo, 'wd', this.wd)
                                 // 滚动预测
-                                setTimeout(() => {
-                                    this.rollingForecast(frameInfo)
-                                })
+                                this.scrollForecast(frameInfo)
                             }
                         }
                     },
@@ -601,9 +602,7 @@
                         }
 
                         // 滚动预测
-                        setTimeout(() => {
-                            this.rollingForecast(frameInfo)
-                        })
+                        this.scrollForecast(frameInfo)
 
                         // 样式覆盖
                         GM_addStyle(`
@@ -662,39 +661,41 @@
                     },
 
                     // 滚动预测
-                    rollingForecast (frameInfo) {
-                        const {
-                            // url,
-                            // name,
-                            wd = '',
-                            document
-                        } = frameInfo
+                    scrollForecast (frameInfo) {
+                        setTimeout(() => {
+                            const {
+                                // url,
+                                // name,
+                                wd = '',
+                                document
+                            } = frameInfo
 
-                        if (!(wd && document)) return
+                            if (!(wd && document)) return
 
-                        let isFind = false // 只滚动至第一个找到的元素位置
+                            let isFind = false // 只滚动至第一个找到的元素位置
 
-                        $(document).find('#searchable > *').each((i, n) => {
-                            if (isFind) return
-                            if (new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test($(n).text())) {
-                                const wikiRight = document.querySelector('#wiki_right')
-                                const tweenData = {
-                                    x: wikiRight.scrollLeft,
-                                    y: wikiRight.scrollTop
+                            $(document).find('#searchable > *').each((i, n) => {
+                                if (isFind) return
+                                if (new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test($(n).text())) {
+                                    const wikiRight = document.querySelector('#wiki_right')
+                                    const tweenData = {
+                                        x: wikiRight.scrollLeft,
+                                        y: wikiRight.scrollTop
+                                    }
+
+                                    new TWEEN.Tween(tweenData) // Create a new tween that modifies 'coords'.
+                                        .to({ x: 0, y: n.offsetTop + 100 }, 500) // Move to (300, 200) in 1 second.
+                                        .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
+                                        .onUpdate(() => {
+                                            // Called after tween.js updates 'coords'.
+                                            // Move 'box' to the position described by 'coords' with a CSS translation.
+                                            wikiRight.scrollTo(tweenData.x, tweenData.y)
+                                        })
+                                        .start() // Start the tween immediately.
+
+                                    isFind = true
                                 }
-
-                                new TWEEN.Tween(tweenData) // Create a new tween that modifies 'coords'.
-                                    .to({ x: 0, y: n.offsetTop + 100 }, 500) // Move to (300, 200) in 1 second.
-                                    .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
-                                    .onUpdate(() => {
-                                        // Called after tween.js updates 'coords'.
-                                        // Move 'box' to the position described by 'coords' with a CSS translation.
-                                        wikiRight.scrollTo(tweenData.x, tweenData.y)
-                                    })
-                                    .start() // Start the tween immediately.
-
-                                isFind = true
-                            }
+                            })
                         })
                     },
 
