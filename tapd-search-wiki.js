@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.4.1
+// @version      3.4.2
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -296,26 +296,20 @@
                                     :key="n.url"
                                     :name="n.url"
                                 >
-                                    <span
+                                    <el-tooltip
                                         slot="label"
-                                        :class="{
-                                            ellipsis: !n.name
-                                        }"
+                                        effect="light"
+                                        placement="top"
+                                        :open-delay="500"
                                     >
-                                        <el-tooltip
-                                            effect="light"
-                                            placement="top"
-                                            :open-delay="500"
-                                        >
-                                            <div slot="content">
-                                                <h3>{{ n.name }}</h3>
-                                                <p><a :href="n.url" target="_blank">{{ n.url }}</a></p>
-                                                <p>关键词：{{ n.wd }}</p>
-                                            </div>
+                                        <div slot="content" style="line-height: 1.5;">
+                                            <h3>{{ n.name }}</h3>
+                                            <p><a :href="n.url" target="_blank">{{ n.url }}</a></p>
+                                            <p>关键词：{{ n.wd }}</p>
+                                        </div>
 
-                                            <span>{{ n.name || n.url }}</span>
-                                        </el-tooltip>
-                                    </span>
+                                        <span class="ellipsis">{{ n.name || n.url }}</span>
+                                    </el-tooltip>
 
                                     <transition name="fade">
                                         <iframe
@@ -740,6 +734,10 @@
 
     // 公共样式
     GM_addStyle(`
+        * {
+            outline: none;
+        }
+
         .kiccer-tampermonkey-tapd-wiki-search {
             float: right;
             height: 100%;
@@ -899,7 +897,7 @@
             .wiki-preview .el-tabs__item .ellipsis {
                 display: inline-block;
                 line-height: 1;
-                max-width: 200px;
+                max-width: 150px;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
