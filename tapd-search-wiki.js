@@ -306,6 +306,7 @@
                                             <h3>{{ n.name }}</h3>
                                             <p><a :href="n.url" target="_blank">{{ n.url }}</a></p>
                                             <p>关键词：{{ n.wd }}</p>
+                                            <p>(注：双击标题可以激活滚动预测功能)</p>
                                         </div>
 
                                         <span
@@ -683,15 +684,17 @@
                                         y: wikiRight.scrollTop
                                     }
 
-                                    new TWEEN.Tween(tweenData) // Create a new tween that modifies 'coords'.
-                                        .to({ x: 0, y: n.offsetTop + 100 }, 500) // Move to (300, 200) in 1 second.
-                                        .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
-                                        .onUpdate(() => {
-                                            // Called after tween.js updates 'coords'.
-                                            // Move 'box' to the position described by 'coords' with a CSS translation.
-                                            wikiRight.scrollTo(tweenData.x, tweenData.y)
-                                        })
-                                        .start() // Start the tween immediately.
+                                    if (n.offsetTop + 100 !== wikiRight.scrollTop) {
+                                        new TWEEN.Tween(tweenData) // Create a new tween that modifies 'coords'.
+                                            .to({ x: 0, y: n.offsetTop + 100 }, 500) // Move to (300, 200) in 1 second.
+                                            .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
+                                            .onUpdate(() => {
+                                                // Called after tween.js updates 'coords'.
+                                                // Move 'box' to the position described by 'coords' with a CSS translation.
+                                                wikiRight.scrollTo(tweenData.x, tweenData.y)
+                                            })
+                                            .start() // Start the tween immediately.
+                                    }
 
                                     isFind = true
                                 }
