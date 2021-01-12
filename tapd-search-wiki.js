@@ -11,12 +11,13 @@
 // @require      https://cdn.bootcdn.net/ajax/libs/vue/2.6.9/vue.js
 // @require      https://cdn.bootcdn.net/ajax/libs/axios/0.21.0/axios.js
 // @require      https://cdn.bootcdn.net/ajax/libs/tween.js/18.6.4/tween.umd.min.js
+// @require      https://cdn.bootcdn.net/ajax/libs/Sortable/1.9.0/Sortable.min.js
 // @noframes     这个千万别删掉！会出现死循环的！
 // @nocompat     Chrome
 // @grant        none
 // ==/UserScript==
 
-/* global Vue axios TWEEN takePartInWorkspaces $ */
+/* global Vue axios TWEEN takePartInWorkspaces $ Sortable */
 // https://www.tampermonkey.net/documentation.php
 // https://element.eleme.cn/#/zh-CN/component/button
 
@@ -286,6 +287,11 @@
                             <el-tabs
                                 editable
                                 type="card"
+                                v-sortable="{
+                                    list: previewFrames,
+                                    container: '.el-tabs__nav',
+                                    draggable: '.el-tabs__item'
+                                }"
                                 v-model="activePreviewTab"
                                 @tab-remove="removeWikiPreviewIframe"
                                 @tab-add="addWikiPreviewIframe"
@@ -396,6 +402,7 @@
 
                     previewFrames: {
                         handler (val, old) {
+                            // console.log(111, val)
                             sessionStorage.setItem('tapd-search-wiki/preview_frames', JSON.stringify(val))
                         },
                         deep: true
@@ -730,6 +737,35 @@
                         }
 
                         this.toggle.addPreviewPopup = false
+                    }
+                },
+
+                directives: {
+                    sortable (el, binding, vnode, oldVnode) {
+                        // console.log({ el, binding, vnode, oldVnode })
+                        const {
+                            container,
+                            draggable,
+                            list = []
+                        } = (binding.value || {})
+
+                        el.sortable = new Sortable(el.querySelector(container), {
+                            draggable,
+                            animation: 150,
+                            easing: 'cubic-bezier(1, 0, 0, 1)',
+                            onEnd: (evt) => {
+                                // console.log(evt)
+                                const {
+                                    newIndex,
+                                    oldIndex
+                                } = evt
+
+                                const _list = list.map(n => n.url)
+                                const item = _list.splice(oldIndex)[0]
+                                _list.splice(newIndex, 0, item)
+                                list.sort((n, m) => _list.indexOf(n.url) - _list.indexOf(m.url))
+                            }
+                        })
                     }
                 }
             })
