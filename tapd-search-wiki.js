@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.5.0
+// @version      3.6.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -12,12 +12,13 @@
 // @require      https://cdn.bootcdn.net/ajax/libs/axios/0.21.0/axios.js
 // @require      https://cdn.bootcdn.net/ajax/libs/tween.js/18.6.4/tween.umd.min.js
 // @require      https://cdn.bootcdn.net/ajax/libs/Sortable/1.9.0/Sortable.min.js
+// @require      https://cdn.bootcdn.net/ajax/libs/clipboard.js/2.0.6/clipboard.min.js
 // @noframes     这个千万别删掉！会出现死循环的！
 // @nocompat     Chrome
 // @grant        none
 // ==/UserScript==
 
-/* global Vue axios TWEEN takePartInWorkspaces $ Sortable */
+/* global Vue axios TWEEN takePartInWorkspaces $ Sortable ClipboardJS */
 // https://www.tampermonkey.net/documentation.php
 // https://element.eleme.cn/#/zh-CN/component/button
 
@@ -611,6 +612,8 @@
 
                         // 滚动预测
                         this.scrollForecast(frameInfo)
+                        // 增加锚点链接复制按钮
+                        this.addAnchorLinkCopyButton(frameInfo)
 
                         // 样式覆盖
                         GM_addStyle(`
@@ -704,6 +707,45 @@
                                     }
 
                                     isFind = true
+                                }
+                            })
+                        })
+                    },
+
+                    // 增加锚点链接复制按钮
+                    addAnchorLinkCopyButton (frameInfo) {
+                        setTimeout(() => {
+                            const {
+                                url,
+                                // name,
+                                // wd = '',
+                                document
+                            } = frameInfo
+
+                            $(document).find('#searchable > *').each((i, n) => {
+                                const anchorDiv = $(n).find('.anchor-div')[0]
+
+                                if (anchorDiv) {
+                                    // 复制按钮
+                                    const copyBtn = $(`
+                                        <div
+                                            title="点击复制锚点链接"
+                                            class="anchor-div font-public font font-copy"
+                                            style="position: relative; height: 20px; width: 22px;"
+                                            data-clipboard-text="${url}@${$(anchorDiv).attr('data-head')}"
+                                        ></div>
+                                    `).appendTo(n)
+
+                                    // 复制代码
+                                    const clipboard = new ClipboardJS(copyBtn[0])
+
+                                    clipboard.on('success', e => {
+                                        this.$message.success('已复制锚点链接到剪贴板 ٩(๑>◡<๑)۶ ')
+                                    })
+
+                                    clipboard.on('error', e => {
+                                        this.$message.error('复制失败！请重试！ (；´д｀)ゞ')
+                                    })
                                 }
                             })
                         })
