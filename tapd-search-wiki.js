@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.6.1
+// @version      3.7.0
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -306,13 +306,33 @@
                                     <el-tooltip
                                         slot="label"
                                         effect="light"
-                                        placement="top"
+                                        placement="bottom"
                                         :open-delay="500"
                                     >
                                         <div slot="content" style="line-height: 1.5;">
                                             <h3>{{ n.name }}</h3>
                                             <p><a :href="n.url" target="_blank">{{ n.url }}</a></p>
-                                            <p>关键词：{{ n.wd }}</p>
+                                            <template v-if="n.keywordList && n.keywordList.length > 1">
+                                                <p>关键词：(点击关键词触发滚动预测)</p>
+                                                <p
+                                                    v-for="keyword in n.keywordList"
+                                                    :key="keyword"
+                                                >
+                                                    <el-button
+                                                        type="text"
+                                                        icon="el-icon-close"
+                                                        style="padding: 0px; margin-right: 10px;"
+                                                        @click="removeKeywordItem(n, keyword)"
+                                                    />
+
+                                                    <a
+                                                        :class="{
+                                                            red: keyword === n.wd
+                                                        }"
+                                                        @click="scrollForecastItem(n, keyword)"
+                                                    >{{ keyword }}</a>
+                                                </p>
+                                            </template>
                                             <p>(注：双击标题可以激活滚动预测功能)</p>
                                         </div>
 
@@ -558,11 +578,16 @@
                                 url,
                                 name,
                                 wd: this.wd,
+                                keywordList: [this.wd],
                                 loading: true
                             })
                         } else {
                             const frameInfo = this.previewFrames.find(n => n.url === url)
                             if (frameInfo) {
+                                frameInfo.keywordList = [...new Set([
+                                    ...(frameInfo.keywordList || []),
+                                    this.wd
+                                ])]
                                 this.$set(frameInfo, 'wd', this.wd)
                                 // 滚动预测
                                 this.scrollForecast(frameInfo)
@@ -669,6 +694,20 @@
                                 min-width: auto;
                             }
                         `, frameInfo.document.head, 'wiki-preview-iframe-css')
+                    },
+
+                    // 点击 tooltips 中的关键词进行滚动
+                    scrollForecastItem (frameInfo, keyword) {
+                        frameInfo.wd = keyword
+                        this.scrollForecast(frameInfo)
+                    },
+
+                    // 移除关键字
+                    removeKeywordItem (frameInfo, keyword) {
+                        frameInfo.keywordList = frameInfo.keywordList.filter(n => n !== keyword)
+                        if (keyword === frameInfo.wd) {
+                            frameInfo.wd = frameInfo.keywordList[0] || ''
+                        }
                     },
 
                     // 滚动预测
@@ -984,6 +1023,10 @@
                 text-overflow: ellipsis;
                 white-space: nowrap;
                 margin-bottom: -2px;
+            }
+
+            a.red:hover {
+                color: red;
             }
         `)
     }
