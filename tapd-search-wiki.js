@@ -724,29 +724,34 @@
 
                             let isFind = false // 只滚动至第一个找到的元素位置
 
-                            $(document).find('#searchable > *').each((i, n) => {
-                                if (isFind) return
-                                if (new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test($(n).text())) {
-                                    const wikiRight = document.querySelector('#wiki_right')
-                                    const tweenData = {
-                                        x: wikiRight.scrollLeft,
-                                        y: wikiRight.scrollTop
-                                    }
+                            ;[
+                                $(document).find('#searchable > *'),
+                                $(document).find('#wiki_right .wiki-body .wiki-info + * > *')
+                            ].forEach(queryDoms => {
+                                queryDoms.each((i, n) => {
+                                    if (isFind) return
+                                    if (new RegExp(wd.split(' ').join('|').replace(/\*/g, '.*?'), 'ig').test($(n).text())) {
+                                        const wikiRight = document.querySelector('#wiki_right')
+                                        const tweenData = {
+                                            x: wikiRight.scrollLeft,
+                                            y: wikiRight.scrollTop
+                                        }
 
-                                    if (n.offsetTop + 100 !== wikiRight.scrollTop) {
-                                        new TWEEN.Tween(tweenData) // Create a new tween that modifies 'coords'.
-                                            .to({ x: 0, y: n.offsetTop + 100 }, 500) // Move to (300, 200) in 1 second.
-                                            .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
-                                            .onUpdate(() => {
-                                                // Called after tween.js updates 'coords'.
-                                                // Move 'box' to the position described by 'coords' with a CSS translation.
-                                                wikiRight.scrollTo(tweenData.x, tweenData.y)
-                                            })
-                                            .start() // Start the tween immediately.
-                                    }
+                                        if (n.offsetTop + 100 !== wikiRight.scrollTop) {
+                                            new TWEEN.Tween(tweenData) // Create a new tween that modifies 'coords'.
+                                                .to({ x: 0, y: n.offsetTop + 100 }, 500) // Move to (300, 200) in 1 second.
+                                                .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
+                                                .onUpdate(() => {
+                                                    // Called after tween.js updates 'coords'.
+                                                    // Move 'box' to the position described by 'coords' with a CSS translation.
+                                                    wikiRight.scrollTo(tweenData.x, tweenData.y)
+                                                })
+                                                .start() // Start the tween immediately.
+                                        }
 
-                                    isFind = true
-                                }
+                                        isFind = true
+                                    }
+                                })
                             })
                         })
                     },
