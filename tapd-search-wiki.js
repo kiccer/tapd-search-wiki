@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         【tapd】一键查询所有项目中的wiki
 // @namespace    https://github.com/kiccer/tapd-search-wiki
-// @version      3.7.0
+// @version      3.7.1
 // @description  为了方便在tapd的wiki中查找接口而开发
 // @author       kiccer<1072907338@qq.com>
 // @copyright    2020, kiccer (https://github.com/kiccer)
@@ -766,31 +766,36 @@
                                 document
                             } = frameInfo
 
-                            $(document).find('#searchable > *').each((i, n) => {
-                                const anchorDiv = $(n).find('.anchor-div')[0]
+                            ;[
+                                $(document).find('#searchable > *'),
+                                $(document).find('#wiki_right .wiki-body .wiki-info + * > *')
+                            ].forEach(queryDoms => {
+                                queryDoms.each((i, n) => {
+                                    const anchorDiv = $(n).find('.anchor-div')[0]
 
-                                if (anchorDiv) {
-                                    // 复制按钮
-                                    const copyBtn = $(`
-                                        <div
-                                            title="点击复制锚点链接"
-                                            class="anchor-div font-public font font-copy"
-                                            style="position: relative; height: 20px; width: 22px;"
-                                            data-clipboard-text="${url}@${$(anchorDiv).attr('data-head')}"
-                                        ></div>
-                                    `).appendTo(n)
+                                    if (anchorDiv) {
+                                        // 复制按钮
+                                        const copyBtn = $(`
+                                            <div
+                                                title="点击复制锚点链接"
+                                                class="anchor-div font-public font font-copy"
+                                                style="position: relative; height: 20px; width: 22px;"
+                                                data-clipboard-text="${url}@${$(anchorDiv).attr('data-head')}"
+                                            ></div>
+                                        `).appendTo(n)
 
-                                    // 复制代码
-                                    const clipboard = new ClipboardJS(copyBtn[0])
+                                        // 复制代码
+                                        const clipboard = new ClipboardJS(copyBtn[0])
 
-                                    clipboard.on('success', e => {
-                                        this.$message.success('已复制锚点链接到剪贴板 ٩(๑>◡<๑)۶ ')
-                                    })
+                                        clipboard.on('success', e => {
+                                            this.$message.success('已复制锚点链接到剪贴板 ٩(๑>◡<๑)۶ ')
+                                        })
 
-                                    clipboard.on('error', e => {
-                                        this.$message.error('复制失败！请重试！ (；´д｀)ゞ')
-                                    })
-                                }
+                                        clipboard.on('error', e => {
+                                            this.$message.error('复制失败！请重试！ (；´д｀)ゞ')
+                                        })
+                                    }
+                                })
                             })
                         }, 1000)
                     },
